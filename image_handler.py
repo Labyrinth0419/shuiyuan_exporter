@@ -1,9 +1,12 @@
+import concurrent.futures
 import json
 import re
 import os
+import threading
+from fcntl import lockf
 
-from constant import UserAgentStr, Shuiyuan_PostByNum, Shuiyuan_Base
-from utils import ReqParam, make_request, read_cookie
+from constant import UserAgentStr, Shuiyuan_PostByNum, Shuiyuan_Base, Shuiyuan_Topic
+from utils import ReqParam, make_request, read_cookie, parallel_topic
 
 
 def download_image(param: ReqParam, output_dir:str, sha1_name:str):
@@ -15,8 +18,8 @@ def download_image(param: ReqParam, output_dir:str, sha1_name:str):
     :return:
     """
     response = make_request(param, once=False)
-    response.raise_for_status()  # 确保请求成功
-
+    if response is None:
+        return
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, sha1_name)
     with open(output_path, 'wb') as f:
@@ -38,20 +41,18 @@ def img_replace(path:str, filename:str, topic:str):
     sha1_codes = re.findall(r'!\[.*?\]\(upload:\/\/([a-zA-Z0-9]+)\.[a-zA-Z0-9]+\)', md_content)
     sha1_codes_with_exts = re.findall(r'!\[.*?\]\(upload://([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)', md_content)
     sha1_codes_with_exts = [t[0] + '.' + t[1] for t in sha1_codes_with_exts]
-    img_names = []
-    headers = {
-        'User-Agent': UserAgentStr,
-        'Cookie': read_cookie()
-    }
-    not_found_cnt = 0
-    i = 0
-    while True:
-        i += 1
-        url_json = Shuiyuan_PostByNum + topic + '/' + str(i) + '.json'
+
+    @parallel_topic(topic=topic)
+    def fetch_layer_image(layer_no: int):
+        url_json = Shuiyuan_PostByNum + topic + '/' + str(layer_no) + '.json'  # 从原始json中抓图片src
+        headers = {
+            'User-Agent': UserAgentStr,
+            'Cookie': read_cookie()
+        }
         req_param = ReqParam(url=url_json, headers=headers)
-        response_json = make_request(req_param)
+        response_json = make_request(req_param, True)
+        ret = []
         if response_json.status_code == 200:
-            not_found_cnt = 0
             data = json.loads(response_json.text)
             html_content = data['cooked']
             img_srcs = re.findall(r'<img src="(.*?)"', html_content)
@@ -62,22 +63,31 @@ def img_replace(path:str, filename:str, topic:str):
                         match = re.search(r'\.([a-zA-Z0-9]+)$', src)
                         if not match:
                             continue
-                        extension = match.group(1)
                         url = src if Shuiyuan_Base in src else Shuiyuan_Base[:-1] + src
+                        extension = match.group(1)
                         param = ReqParam(url=url, headers=headers)
                         download_image(param=param, output_dir=path + 'images', sha1_name=sha1_code + '.' + extension)
-                        img_names.append(sha1_code + '.' + extension)
-        else:
-            not_found_cnt += 1
-            if not_found_cnt >= 10:
-                break
-            continue
-    for sha1_with_ext, name in zip(sha1_codes_with_exts, img_names):
+                        ret.append(sha1_code + '.' + extension)
+        return ret
+    # with concurrent.futures.ThreadPoolExecutor() as executor:
+    #     for i in range(1, posts_count+1):
+    #         response_futures.append(executor.submit(fetch_layer_image, i))
+    # for future in concurrent.futures.as_completed(response_futures):
+    #     try:
+    #         future.result()
+    #     except Exception as e:
+    #         print(f"部分下载失败, 原因: {e}")
+    img_names = fetch_layer_image()
+
+    img_names_flatten = [item for sublist in img_names for item in sublist]
+    for sha1_with_ext, name in zip(sha1_codes_with_exts, img_names_flatten):
         md_content = md_content.replace(sha1_with_ext, name)
+
     def replace(matchs):
         old_link = matchs.group(0)  # 获取整个匹配的字符串
         new_link = old_link.replace('upload://', './images/')  # 替换链接
         return new_link
+
     md_content = re.sub(r'!\[.*?\]\(upload://([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)', replace, md_content)
     # 将修改后的内容写回文件
     with open(path + filename, 'w', encoding='utf-8') as file:

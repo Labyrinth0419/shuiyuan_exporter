@@ -4,7 +4,7 @@ The reposity is created to export posts on Shuiyuan Forum as markdown documents.
 
 prerequisites:
 
-- Python 3.x
+- Python 3.4+ (Now tested for 3.12 only)
 - BeautifulSoup 4
 - requests
 
@@ -15,7 +15,7 @@ pip install -r requirements.txt
 ```
 Go to the SJTU shuiyuan site and get your cookies, then copy them to the `cookies.txt` file.
 
-run the script:
+Quick Start:
 
 ```
 python main.py
@@ -39,6 +39,11 @@ $ python main.py
 文件替换中...
 编号为 75214 的帖子已备份为本地文件：XXX.md
 ```
+
+Other Details:
+- we use threadingpool to fetch data concurrently
+- you can use `python main.py --help` to get more information about optional arguments
+
 
 FAQ:
 
