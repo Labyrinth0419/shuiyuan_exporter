@@ -1,34 +1,28 @@
-import os
-import time
-import requests
-import json
-import re
 from bs4 import BeautifulSoup
-from image_dealer import *
-from attachments_dealer import *
+from image_handler import *
+from attachments_handler import *
+from constant import *
+from utils import *
 
-def make_request_with_retries(url, headers, retries=5, delay=2):
-    for i in range(retries):
-        try:
-            response = requests.get(url, headers=headers)
-            return response
-        except requests.exceptions.RequestException as e:
-            if i < retries - 1:
-                time.sleep(delay)
-                delay *= 2  # 可以增加延迟来避免频繁请求
-            else:
-                raise e
 
-def short_post(path, topic, cookie_string):
-    url_topic = 'https://shuiyuan.sjtu.edu.cn/t/topic/' + topic
-    url_raw = 'https://shuiyuan.sjtu.edu.cn/raw/' + topic
+def short_post(path:str, topic:str, cookie_string:str)->str:
+    """
+    获取小于100楼的帖子
+    :param path: save file path
+    :param topic: shuiyuan topic id
+    :param cookie_string: raw cookie string, get by read_cookie()
+    :return: saved filename
+    """
+    url_topic = Shuiyuan_Topic + topic
+    url_raw = Shuiyuan_Raw + topic
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+        'User-Agent': UserAgentStr,
         'Cookie': cookie_string
     }
-    response_raw = make_request_with_retries(url_raw, headers=headers)
-    response_topic = make_request_with_retries(url_topic, headers=headers)
+    response_raw = make_request(param=ReqParam(url_raw, headers), once=False)
+    response_topic = make_request(param=ReqParam(url_topic, headers), once=False)
     title = 'Empty'
+    content_raw = ""
     if response_topic.status_code == 200:
         content_topic = response_topic.text
         soup = BeautifulSoup(content_topic, 'html.parser')
@@ -37,20 +31,27 @@ def short_post(path, topic, cookie_string):
         content_raw = response_raw.text
     filename = (title + '.md').replace('/', ' or ')
     filename = re.sub(r'[\\/*?:"<>|]', '_', filename)
-    filename = topic[0:] + ' ' + filename
-    with open(path + filename, 'w', encoding='utf-8') as file:
-        file.write(content_raw)
+    filename = topic + '-' + filename
+    with open(path + filename, 'w', encoding='utf-8') as f:
+        f.write(content_raw)
     return filename
 
 
-def long_post(path, topic, cookie_string):
+def long_post(path:str, topic:str, cookie_string:str)->str:
+    """
+    获取长于100楼的帖子
+    :param path: save file path
+    :param topic: shuiyuan topic id
+    :param cookie_string: raw cookie string, get by read_cookie()
+    :return: saved filename
+    """
     topic = topic[1:]
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+        'User-Agent': UserAgentStr,
         'Cookie': cookie_string
     }
-    url_topic = 'https://shuiyuan.sjtu.edu.cn/t/topic/' + topic
-    url_cooked = 'https://shuiyuan.sjtu.edu.cn/posts/by_number/' + topic + '.json'
+    url_topic = Shuiyuan_Topic + topic
+    url_cooked = Shuiyuan_PostByNum + topic + '.json'
     response_topic = make_request_with_retries(url_topic, headers=headers)
     title = 'Empty'
     if response_topic.status_code == 200:
@@ -67,8 +68,8 @@ def long_post(path, topic, cookie_string):
     i = 0
     while True:
         i += 1
-        url_raw = 'https://shuiyuan.sjtu.edu.cn/raw/' + topic + '/' + str(i)
-        response_raw = make_request_with_retries(url_raw, headers=headers)
+        url_raw = Shuiyuan_Raw + topic + '/' + str(i)
+        response_raw = make_request(param=ReqParam(url_raw, headers), once=False)
         if response_raw.status_code == 200:
             not_found_cnt = 0
             content_raw = f'post #{i}\n' + response_raw.text + "\n\n-----------------------------------\n\n"
@@ -98,36 +99,29 @@ def export(cookie_string):
     else:
         filename = short_post(path=path, topic=topic, cookie_string=cookie_string)
     img_replace(path=path, filename=filename, topic=(topic[1:] if topic[0] == "L" else topic))
-    atch_replace(path= path, filename=filename, topic=(topic[1:] if topic[0] == "L" else topic))
+    match_replace(path=path, filename=filename, topic=(topic[1:] if topic[0] == "L" else topic))
     print(f'编号为 #{topic[1:] if topic[0] == "L" else topic} 的帖子已备份为本地文件：{filename}\n')
     return True
 
 def cookie_set():
+    """
+    设置cookie
+    """
     while True:
         cookies = input('请输入cookie:(如果使用上次结果请输入"!!!",退出输入"???")\n')
         if cookies == "???":
             return None
         if cookies == "!!!":
-            if os.path.isfile('./cookies.txt') or os.path.getsize('./cookies.txt') == 0:
-                print('您还未设置cookie！')
-                continue
-            else:
-                with open('./cookies.txt', 'r', encoding='utf-8') as f:
-                    cookie_string = f.read()
+            cookie_string = read_cookie()
+            if len(cookie_string) != 0:
+                set_cookie(data=cookie_string)
                 break
-        else:
-            with open('./cookies.txt', 'w', encoding='utf-8') as f:
-                f.write(cookies)
-                cookie_string = cookies
-            break
-    return cookie_string
+            print('您还未设置cookie！')
 
 def run():
-    cookie_string = cookie_set()
-    while cookie_string:
-        if not export(cookie_string):
-            break
-
-
-run()
+    cookie_set()
+    cookie_string = read_cookie()
+    export(cookie_string)
+if __name__ == "__main__":
+    run()
 
