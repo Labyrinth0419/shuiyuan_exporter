@@ -2,7 +2,7 @@ import json
 import re
 import os
 
-from constant import UserAgentStr, Shuiyuan_PostByNum
+from constant import UserAgentStr, Shuiyuan_PostByNum, Shuiyuan_Base
 from utils import ReqParam, make_request, read_cookie
 
 
@@ -63,7 +63,8 @@ def img_replace(path:str, filename:str, topic:str):
                         if not match:
                             continue
                         extension = match.group(1)
-                        param = ReqParam(url=src, headers=headers)
+                        url = src if Shuiyuan_Base in src else Shuiyuan_Base[:-1] + src
+                        param = ReqParam(url=url, headers=headers)
                         download_image(param=param, output_dir=path + 'images', sha1_name=sha1_code + '.' + extension)
                         img_names.append(sha1_code + '.' + extension)
         else:
