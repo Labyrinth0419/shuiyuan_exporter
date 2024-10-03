@@ -2,20 +2,20 @@
 
 The reposity is created to export posts on Shuiyuan Forum as markdown documents.
 
-prerequisites:
+### Prerequisites:
 
 - Python 3.4+ (Now tested for 3.12 only)
 - BeautifulSoup 4
 - requests
 
-install dependencies:
+### Install dependencies:
 
 ```
 pip install -r requirements.txt
 ```
 Go to the SJTU shuiyuan site and get your cookies, then copy them to the `cookies.txt` file.
 
-Quick Start:
+### Quick Start:
 
 ```
 python main.py
@@ -40,12 +40,12 @@ $ python main.py
 编号为 75214 的帖子已备份为本地文件：XXX.md
 ```
 
-Other Details:
+### Other Details:
 - we use threadingpool to fetch data concurrently
-- you can use `python main.py --help` to get more information about optional arguments
+- you can use `python main.py --help` to **get more information about optional arguments**(like clean, batch, etc)
 
 
-FAQ:
+### FAQ:
 
 - Q: Why does the script need cookies?
 - A: The script needs cookies to access the Shuiyuan Forum. Without cookies, the script cannot access the site and export the posts.
