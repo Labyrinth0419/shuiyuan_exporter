@@ -1,4 +1,5 @@
 import concurrent.futures
+import os.path
 import re
 import time
 import json
@@ -12,6 +13,12 @@ import requests
 cookie_default_path = "./cookies.txt"
 @cache
 def read_cookie(path:str = cookie_default_path):
+    """
+    阅读path为 './cookies.txt' 的文件并写入。
+    如果对应的cookie不存在，则返回空字符串
+    """
+    if not os.path.exists(path):
+        return ""
     with open(path,"r") as f:
         return f.read()
 
@@ -66,7 +73,7 @@ def make_request(param: ReqParam, once=True):
     return req_multi()
 
 
-def parallel_topic(topic:str):
+def parallel_topic_in_layer(topic:str):
     def decorator(func:Callable[[int], Any]):
         def wrapper():
             nonlocal topic
@@ -80,13 +87,48 @@ def parallel_topic(topic:str):
 
             try:
                 data = json.loads(response_json.text)
-                posts_count = data['posts_count']
+                posts_count = data['highest_post_number']
             except Exception as e:
                 raise f"获取楼数失败! 原因:{e}"
             print(f"总楼数 {posts_count}: 正在爬取......")
             result_futures = []
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 for i in range(1, posts_count + 1):
+                    fu = executor.submit(func, i)
+                    result_futures.append(fu)
+                print("工作已加载完毕")
+            results = []
+            for res in concurrent.futures.as_completed(result_futures):
+                try:
+                    # print(res)
+                    results.append(res.result())
+                except Exception as e:
+                    print(f'Exception: {e}')
+            return results
+        return wrapper
+    return decorator
+
+def parallel_topic_in_page(topic:str, limit: int):
+    def decorator(func:Callable[[int], Any]):
+        def wrapper():
+            nonlocal topic
+            url_json = Shuiyuan_Topic + topic + '.json'  # 从原始json中得到楼数
+            headers = {
+                'User-Agent': UserAgentStr,
+                'Cookie': read_cookie()
+            }
+            req_param = ReqParam(url=url_json, headers=headers)
+            response_json = make_request(req_param, once=True)
+
+            try:
+                data = json.loads(response_json.text)
+                pages = data['posts_count'] // raw_limit + (1 if data['posts_count'] % limit != 0 else 0)
+            except Exception as e:
+                raise f"获取页数失败! 原因:{e}"
+            print(f"总页数 {pages}: 正在爬取......")
+            result_futures = []
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                for i in range(1, pages + 1):
                     fu = executor.submit(func, i)
                     result_futures.append(fu)
                 print("工作已加载完毕")

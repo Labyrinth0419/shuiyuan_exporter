@@ -3,10 +3,10 @@ import json
 import re
 import os
 import threading
-from fcntl import lockf
+#from fcntl import lockf
 
 from constant import UserAgentStr, Shuiyuan_PostByNum, Shuiyuan_Base, Shuiyuan_Topic
-from utils import ReqParam, make_request, read_cookie, parallel_topic
+from utils import ReqParam, make_request, read_cookie, parallel_topic_in_layer
 
 
 def download_image(param: ReqParam, output_dir:str, sha1_name:str):
@@ -42,7 +42,7 @@ def img_replace(path:str, filename:str, topic:str):
     sha1_codes_with_exts = re.findall(r'!\[.*?\]\(upload://([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)', md_content)
     sha1_codes_with_exts = [t[0] + '.' + t[1] for t in sha1_codes_with_exts]
 
-    @parallel_topic(topic=topic)
+    @parallel_topic_in_layer(topic=topic)
     def fetch_layer_image(layer_no: int):
         url_json = Shuiyuan_PostByNum + topic + '/' + str(layer_no) + '.json'  # 从原始json中抓图片src
         headers = {

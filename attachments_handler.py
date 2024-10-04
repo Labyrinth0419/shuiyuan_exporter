@@ -4,7 +4,7 @@ import re
 from typing import List
 
 from constant import Shuiyuan_PostByNum, Shuiyuan_Base, UserAgentStr, Shuiyuan_Topic
-from utils import read_cookie, make_request, ReqParam, parallel_topic
+from utils import read_cookie, make_request, ReqParam, parallel_topic_in_layer
 
 
 def match_replace(path:str, filename:str, topic:str):
@@ -21,7 +21,7 @@ def match_replace(path:str, filename:str, topic:str):
     sha1_codes_with_exts = re.findall(r'\[.*?\|attachment\]\(upload://([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)', md_content)
     sha1_codes_with_exts = [t[0] + '.' + t[1] for t in sha1_codes_with_exts]
 
-    @parallel_topic(topic=topic)
+    @parallel_topic_in_layer(topic=topic)
     def fetch_layer_attachment(layer_no: int) -> str:
         try:
             url_json = Shuiyuan_PostByNum + topic + '/' + str(layer_no) + '.json'

@@ -6,90 +6,52 @@ from utils import *
 from typing import Tuple
 from pathlib import Path
 import argparse
-def short_post(path:str, topic:str, cookie_string:str)->str:
+
+def raw_post(path:str, topic:str, cookie_string:str)->str:
     """
-    获取小于100楼的帖子
-    :param path: save file path
-    :param topic: shuiyuan topic id
-    :param cookie_string: raw cookie string, get by read_cookie()
-    :return: saved filename
+    获取任意编号下的帖子
     """
-    url_topic = Shuiyuan_Topic + topic
-    url_raw = Shuiyuan_Raw + topic
+    url_json = Shuiyuan_Topic_Json + topic + ".json"
     headers = {
         'User-Agent': UserAgentStr,
         'Cookie': cookie_string
     }
-    response_raw = make_request(param=ReqParam(url_raw, headers), once=False)
-    response_topic = make_request(param=ReqParam(url_topic, headers), once=False)
-    title = 'Empty'
-    content_raw = ""
-    if response_topic.status_code == 200:
-        content_topic = response_topic.text
-        soup = BeautifulSoup(content_topic, 'html.parser')
-        title = soup.title.string if soup.title else 'Empty'
-    if response_raw.status_code == 200:
-        content_raw = response_raw.text
-    filename = (title + '.md').replace('/', ' or ')
-    filename = re.sub(r'[\\/*?:"<>|]', '_', filename)
-    filename = topic + ' ' + filename
-    with open(path + filename, 'w', encoding='utf-8') as f:
-        f.write(content_raw)
-    return filename
-
-
-def long_post(path:str, topic:str, cookie_string:str)->str:
-    """
-    获取长于100楼的帖子
-    :param path: save file path
-    :param topic: shuiyuan topic id
-    :param cookie_string: raw cookie string, get by read_cookie()
-    :return: saved filename
-    """
-    topic = topic[1:]
-    headers = {
-        'User-Agent': UserAgentStr,
-        'Cookie': cookie_string
-    }
-    url_topic = Shuiyuan_Topic + topic
-    # url_cooked = Shuiyuan_PostByNum + topic + '.json'
-    param = ReqParam(url=url_topic, headers=headers)
-    response_topic = make_request(param=param, once=False)
-    url_json = url_topic + ".json"
-    response_json = make_request(param=ReqParam(url=url_json, headers=headers), once=False)
-    title = 'Empty'
-    posts_count = 0
-    if response_topic.status_code == 200 and response_topic.status_code == 200:
-        content_topic = response_topic.text
-        soup = BeautifulSoup(content_topic, 'html.parser')
-        title = soup.title.string if soup.title else 'Empty'
-
+    response_json = make_request(param=ReqParam(url_json, headers), once=False)
+    title = "Empty"
+    pages = 0
+    if response_json.status_code == 200:
         data = json.loads(response_json.text)
-        posts_count = data['posts_count']
-
+        title = data['title']
+        pages = data['posts_count'] // raw_limit + (1 if data['posts_count'] % raw_limit != 0 else 0)
     filename = (str(title) + '.md').replace('/', ' or ')
     filename = re.sub(r'[\\/*?:"<>|]', '_', filename)
     filename = topic + ' ' + filename
     with open(path + filename, 'w', encoding='utf-8') as file:
         file.write("")
-
-    # handle_futures = []
-    @parallel_topic(topic=topic)
-    def handle_func(layer_no: int)->Tuple[int,str]:
-        url_raw = Shuiyuan_Raw + topic + '/' + str(layer_no)
+    """
+    for page in range(pages):
+        url_raw = Shuiyuan_Raw + topic + "?page=" + str(page + 1)
         response_raw = make_request(param=ReqParam(url_raw, headers), once=False)
-        if layer_no % 50 == 0:
-            print(filename + ": post #" + str(layer_no) + " successfully saved!")
+        content_raw = response_raw.text
+        with open(path + filename, 'a', encoding='utf-8') as file:
+            file.write(content_raw)
+    return filename
+    """
+
+    @parallel_topic_in_page(topic=topic, limit=raw_limit)
+    def handle_func(page_no: int) -> Tuple[int, str]:
+        url_raw = Shuiyuan_Raw + topic + '?page=' + str(page_no)
+        response_raw = make_request(param=ReqParam(url_raw, headers), once=False)
         if response_raw.status_code == 200:
-            return layer_no, f'post #{layer_no}\n' + response_raw.text + "\n\n-----------------------------------\n\n"
-        return layer_no, ""
+            return page_no, f'post #{page_no}\n' + response_raw.text + "\n\n-----------------------------------\n\n"
+        return page_no, ""
 
     # with concurrent.futures.ThreadPoolExecutor() as executor:
     #     for i in range(1, posts_count + 1):
     #         handle_futures.append(executor.submit(handle_func, i))
     handle_res = handle_func()
     # join
-    to_write:List[Tuple[int, str]] = []
+    to_write: List[Tuple[int, str]] = []
     # for future in concurrent.futures.as_completed(handle_futures):
     #     to_write.append(future.result())
     for result in handle_res:
@@ -107,17 +69,14 @@ def export_exec(cookie_string:str, topic:str, is_long:bool):
     print(topic)
     path = './posts/' + (topic[1:] if topic[0] == 'L' else topic) + '/'
     os.makedirs(path, exist_ok=True)
-    if is_long:
-        filename = long_post(path=path, topic=topic, cookie_string=cookie_string)
-    else:
-        filename = short_post(path=path, topic=topic, cookie_string=cookie_string)
+    filename = raw_post(path=path, topic=topic, cookie_string=cookie_string)
     img_replace(path=path, filename=filename, topic=(topic[1:] if topic[0] == "L" else topic))
     match_replace(path=path, filename=filename, topic=(topic[1:] if topic[0] == "L" else topic))
     print(f'编号为 #{topic[1:] if topic[0] == "L" else topic} 的帖子已备份为本地文件：{filename}\n')
     print("Exit.")
 
 def export_input(cookie_string:str):
-    topic = input('请输入帖子编号:(退出请输入"???", 多于100楼的帖子请输入"L+帖子编号")\n')
+    topic = input('请输入帖子编号:(退出请输入"???")\n')
     if topic == "???":
         raise Exception("Exit.")
     topic = str(topic)
@@ -128,21 +87,21 @@ def export_input(cookie_string:str):
 def cookie_set():
     """
     设置cookie
+    如成功设置则返回True，否则返回False退出
     """
     while True:
         cookies = input('请输入cookie:(如果使用上次结果请输入"!!!",退出输入"???")\n')
         if cookies == "???":
-            return None
+            return False
         if cookies == "!!!":
             cookie_string = read_cookie()
             if len(cookie_string) != 0:
-                set_cookie(data=cookie_string)
-                break
+                return True
             print('您还未设置cookie！')
-        if len(cookies) != 0:
+        elif len(cookies) != 0:
             set_cookie(data=cookies)
             print("已同步新cookie到文件")
-            break
+            return True
 
 
 def run(batch_topic:Tuple[str] = None):
