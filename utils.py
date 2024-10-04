@@ -89,7 +89,7 @@ def parallel_topic_in_layer(topic:str):
                 data = json.loads(response_json.text)
                 posts_count = data['highest_post_number']
             except Exception as e:
-                raise f"获取楼数失败! 原因:{e}"
+                raise Exception(f"获取楼数失败! 原因:{e}")
             print(f"总楼数 {posts_count}: 正在爬取......")
             result_futures = []
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -124,7 +124,7 @@ def parallel_topic_in_page(topic:str, limit: int):
                 data = json.loads(response_json.text)
                 pages = data['posts_count'] // raw_limit + (1 if data['posts_count'] % limit != 0 else 0)
             except Exception as e:
-                raise f"获取页数失败! 原因:{e}"
+                raise Exception(f"获取页数失败! 原因:{e}")
             print(f"总页数 {pages}: 正在爬取......")
             result_futures = []
             with concurrent.futures.ThreadPoolExecutor() as executor:

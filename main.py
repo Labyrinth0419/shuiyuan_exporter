@@ -64,15 +64,17 @@ def raw_post(path:str, topic:str, cookie_string:str)->str:
     return filename
 
 def export_exec(cookie_string:str, topic:str, is_long:bool):
-    print(f'topic:{topic} 文字备份中...')
     topic = str(topic)
-    print(topic)
-    path = './posts/' + (topic[1:] if topic[0] == 'L' else topic) + '/'
+    topic = topic[1:] if topic[0] == "L" else topic # 兼容老API的 L123456
+    print(f'topic:{topic} 文字备份中...')
+
+    path = f'./posts/{topic}/'
     os.makedirs(path, exist_ok=True)
+
     filename = raw_post(path=path, topic=topic, cookie_string=cookie_string)
-    img_replace(path=path, filename=filename, topic=(topic[1:] if topic[0] == "L" else topic))
-    match_replace(path=path, filename=filename, topic=(topic[1:] if topic[0] == "L" else topic))
-    print(f'编号为 #{topic[1:] if topic[0] == "L" else topic} 的帖子已备份为本地文件：{filename}\n')
+    img_replace(path=path, filename=filename, topic=topic)
+    match_replace(path=path, filename=filename, topic=topic)
+    print(f'编号为 #{topic} 的帖子已备份为本地文件：{filename}\n')
     print("Exit.")
 
 def export_input(cookie_string:str):
@@ -104,8 +106,9 @@ def cookie_set():
             return True
 
 
-def run(batch_topic:Tuple[str] = None):
-    cookie_set()
+def run(batch_topic:Tuple[str] = None, ask_cookie=True):
+    if ask_cookie:
+        cookie_set()
     cookie_string = read_cookie()
     if batch_topic and len(batch_topic) != 0:
         for topic in batch_topic:
@@ -133,13 +136,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="The script is created to export posts on Shuiyuan Forum as markdown documents.")
     parser.add_argument('-b', '--batch', nargs='+',type=str, help='For test and CI: -b 1 2 3 means download the topic 1, 2, 3')
     parser.add_argument('-c', '--clean', action='store_true', help='clean the posts folder for possible meaningless md')
-
+    parser.add_argument('-n','--not_ask_cookie', action='store_true', help='if ask for cookie or use saved cookie directly')
     args = parser.parse_args()
+    ask = not args.not_ask_cookie if args.not_ask_cookie else True
     if args.batch:
         print(args.batch)
-        run(args.batch)
+        run(args.batch, ask_cookie=ask)
     elif args.clean:
         clean()
     else:
-        run()
+        run(ask_cookie=ask)
 

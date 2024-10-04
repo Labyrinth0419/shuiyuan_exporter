@@ -69,14 +69,6 @@ def img_replace(path:str, filename:str, topic:str):
                         download_image(param=param, output_dir=path + 'images', sha1_name=sha1_code + '.' + extension)
                         ret.append(sha1_code + '.' + extension)
         return ret
-    # with concurrent.futures.ThreadPoolExecutor() as executor:
-    #     for i in range(1, posts_count+1):
-    #         response_futures.append(executor.submit(fetch_layer_image, i))
-    # for future in concurrent.futures.as_completed(response_futures):
-    #     try:
-    #         future.result()
-    #     except Exception as e:
-    #         print(f"部分下载失败, 原因: {e}")
     img_names = fetch_layer_image()
 
     img_names_flatten = [item for sublist in img_names for item in sublist]
