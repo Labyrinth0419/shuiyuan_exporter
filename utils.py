@@ -137,7 +137,8 @@ def parallel_topic_in_page(topic:str, limit: int):
                 try:
                     # print(res)
                     results.append(res.result())
-                    print(f"--- 已完成工作: {cnt}/{pages}")
+                    if cnt % 10 == 0:
+                        print(f"--- 已完成工作: {cnt}/{pages}")
                 except Exception as e:
                     print(f'Exception: {e}')
             return results

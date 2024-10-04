@@ -2,8 +2,8 @@ import json
 import re
 import os
 
-from constant import UserAgentStr, Shuiyuan_PostByNum, Shuiyuan_Base, Shuiyuan_Topic
-from utils import ReqParam, make_request, read_cookie, parallel_topic_in_layer
+from constant import UserAgentStr, Shuiyuan_PostByNum, Shuiyuan_Base, Shuiyuan_Topic, Shuiyuan_Topic_Json, json_limit
+from utils import ReqParam, make_request, read_cookie, parallel_topic_in_layer, parallel_topic_in_page
 
 
 def download_image(param: ReqParam, output_dir:str, sha1_name:str):
@@ -39,9 +39,9 @@ def img_replace(path:str, filename:str, topic:str):
     sha1_codes_with_exts = re.findall(r'!\[.*?\]\(upload://([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)', md_content)
     sha1_codes_with_exts = [t[0] + '.' + t[1] for t in sha1_codes_with_exts]
 
-    @parallel_topic_in_layer(topic=topic)
-    def fetch_layer_image(layer_no: int):
-        url_json = Shuiyuan_PostByNum + topic + '/' + str(layer_no) + '.json'  # 从原始json中抓图片src
+    @parallel_topic_in_page(topic=topic, limit=json_limit)
+    def fetch_image(page_no: int):
+        url_json = Shuiyuan_Topic_Json + topic + '.json' + "?page=" + str(page_no)
         headers = {
             'User-Agent': UserAgentStr,
             'Cookie': read_cookie()
@@ -51,22 +51,24 @@ def img_replace(path:str, filename:str, topic:str):
         ret = []
         if response_json.status_code == 200:
             data = json.loads(response_json.text)
-            html_content = data['cooked']
-            img_srcs = re.findall(r'<img src="(.*?)"', html_content)
-            img_sha1s = re.findall(r'<img.*?data-base62-sha1="(.*?)"', html_content)
-            for sha1_code in sha1_codes:
-                for src, sha1 in zip(img_srcs, img_sha1s):
-                    if sha1 == sha1_code:
-                        match = re.search(r'\.([a-zA-Z0-9]+)$', src)
-                        if not match:
-                            continue
-                        url = src if Shuiyuan_Base in src else Shuiyuan_Base[:-1] + src
-                        extension = match.group(1)
-                        param = ReqParam(url=url, headers=headers)
-                        download_image(param=param, output_dir=path + 'images', sha1_name=sha1_code + '.' + extension)
-                        ret.append(sha1_code + '.' + extension)
+            posts_list = data['post_stream']['posts']
+            for post in posts_list:
+                html_content = post['cooked']
+                img_srcs = re.findall(r'<img src="(.*?)"', html_content)
+                img_sha1s = re.findall(r'<img.*?data-base62-sha1="(.*?)"', html_content)
+                for sha1_code in sha1_codes:
+                    for src, sha1 in zip(img_srcs, img_sha1s):
+                        if sha1 == sha1_code:
+                            match = re.search(r'\.([a-zA-Z0-9]+)$', src)
+                            if not match:
+                                continue
+                            url = src if Shuiyuan_Base in src else Shuiyuan_Base[:-1] + src
+                            extension = match.group(1)
+                            param = ReqParam(url=url, headers=headers)
+                            download_image(param=param, output_dir=path + 'images', sha1_name=sha1_code + '.' + extension)
+                            ret.append(sha1_code + '.' + extension)
         return ret
-    img_names = fetch_layer_image()
+    img_names = fetch_image()
 
     img_names_flatten = [item for sublist in img_names for item in sublist]
     for sha1_with_ext, name in zip(sha1_codes_with_exts, img_names_flatten):

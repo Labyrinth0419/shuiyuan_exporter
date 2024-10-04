@@ -17,14 +17,8 @@ def match_replace(path:str, filename:str, topic:str):
     print('文件替换中...')
     file = open(path + filename, 'r', encoding='utf-8')
     md_content = file.read()
-
-    """
-    sha1_codes_with_exts = re.findall(r'\[.*?\|attachment\]\(upload://([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)', md_content)
-    sha1_codes_with_exts = [t[0] + '.' + t[1] for t in sha1_codes_with_exts]
-    """
-
     @parallel_topic_in_page(topic=topic, limit=json_limit)
-    def fetch_layer_attachment(page_no: int) -> List[Tuple[str, str]]:
+    def fetch_attachment(page_no: int) -> List[Tuple[str, str]]:
         try:
             url_json = Shuiyuan_Topic_Json + topic + '.json' + "?page=" + str(page_no)
             headers = {
@@ -54,7 +48,7 @@ def match_replace(path:str, filename:str, topic:str):
             print(f"Error processing page {page_no}: {e}")
             return []
 
-    match_urls_lists:List[Tuple[str,str]] = fetch_layer_attachment()
+    match_urls_lists = fetch_attachment()
     # for url in match_urls:
     #     print("match_urls: " + url)
     url_sha1s = []
