@@ -1,9 +1,6 @@
-import concurrent.futures
 import json
 import re
 import os
-import threading
-#from fcntl import lockf
 
 from constant import UserAgentStr, Shuiyuan_PostByNum, Shuiyuan_Base, Shuiyuan_Topic
 from utils import ReqParam, make_request, read_cookie, parallel_topic_in_layer

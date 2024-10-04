@@ -133,10 +133,11 @@ def parallel_topic_in_page(topic:str, limit: int):
                     result_futures.append(fu)
                 print("工作已加载完毕")
             results = []
-            for res in concurrent.futures.as_completed(result_futures):
+            for cnt, res in enumerate(concurrent.futures.as_completed(result_futures)):
                 try:
                     # print(res)
                     results.append(res.result())
+                    print(f"--- 已完成工作: {cnt}/{pages}")
                 except Exception as e:
                     print(f'Exception: {e}')
             return results

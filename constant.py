@@ -7,3 +7,7 @@ Shuiyuan_PostByNum = Shuiyuan_Base + "posts/by_number/"
 UserAgentStr = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
 raw_limit = 100
 json_limit = 20
+
+# bmp，jpg，png，tif，gif，pcx，tga，exif，fpx，svg，psd，cdr，pcd，dxf，ufo，eps，ai，raw，WMF，webp，avif，apng
+image_extensions = {".gif", ".jpg", ".png", ".jpeg", ".webp", ".raw", ".bmp", ".tif", ".tiff", ".avif", ".svg", ".pcd",
+                    ".cdr", ".exif", ".fpx", ".WMF", ".apng", ".dxf", ".ufo"}
