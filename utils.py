@@ -122,7 +122,7 @@ def parallel_topic_in_page(topic:str, limit: int):
 
             try:
                 data = json.loads(response_json.text)
-                pages = data['posts_count'] // raw_limit + (1 if data['posts_count'] % limit != 0 else 0)
+                pages = data['posts_count'] // limit + (1 if data['posts_count'] % limit != 0 else 0)
             except Exception as e:
                 raise Exception(f"获取页数失败! 原因:{e}")
             print(f"总页数 {pages}: 正在爬取......")

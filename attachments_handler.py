@@ -1,10 +1,10 @@
 import concurrent.futures
 import json
 import re
-from typing import List
+from typing import List, Tuple
 
-from constant import Shuiyuan_PostByNum, Shuiyuan_Base, UserAgentStr, Shuiyuan_Topic
-from utils import read_cookie, make_request, ReqParam, parallel_topic_in_layer
+from constant import Shuiyuan_Base, Shuiyuan_Raw, UserAgentStr, Shuiyuan_Topic_Json, json_limit
+from utils import read_cookie, make_request, ReqParam, parallel_topic_in_page
 
 
 def match_replace(path:str, filename:str, topic:str):
@@ -18,13 +18,15 @@ def match_replace(path:str, filename:str, topic:str):
     file = open(path + filename, 'r', encoding='utf-8')
     md_content = file.read()
 
+    """
     sha1_codes_with_exts = re.findall(r'\[.*?\|attachment\]\(upload://([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)', md_content)
     sha1_codes_with_exts = [t[0] + '.' + t[1] for t in sha1_codes_with_exts]
+    """
 
-    @parallel_topic_in_layer(topic=topic)
-    def fetch_layer_attachment(layer_no: int) -> str:
+    @parallel_topic_in_page(topic=topic, limit=json_limit)
+    def fetch_layer_attachment(page_no: int) -> List[Tuple[str, str]]:
         try:
-            url_json = Shuiyuan_PostByNum + topic + '/' + str(layer_no) + '.json'
+            url_json = Shuiyuan_Topic_Json + topic + '.json' + "?page=" + str(page_no)
             headers = {
                 'User-Agent': UserAgentStr,
                 'Cookie': read_cookie()
@@ -33,22 +35,34 @@ def match_replace(path:str, filename:str, topic:str):
             response_json = make_request(param, once=False)
             if response_json.status_code == 200:
                 data = json.loads(response_json.text)
-                cooked_content = data['cooked']
-                match = re.search(r'class="attachment" href="([^"]+)"', cooked_content)
-                if match:
-                    match_hrefs = match.group(1)
-                    return Shuiyuan_Base + match_hrefs
-            return ""
+                posts_list = data['post_stream']['posts']
+                url_sha1s = []
+                for post in posts_list:
+                    cooked_content = post['cooked']
+                    cooked_match = re.findall(r'class="attachment" href="([^"]+)"', cooked_content)
+                    if cooked_match:
+                        url_raw = Shuiyuan_Raw + topic + "/" + str(post['post_number'])
+                        raw_content = make_request(param=ReqParam(url_raw, headers)).text
+                        raw_match = re.findall(r'\[.*?\|attachment\]\(upload://([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)',
+                                               raw_content)
+                        raw_match = [t[0] + "." + t[1] for t in raw_match]
+                        url_sha1 = [(Shuiyuan_Base + url, sha1) for url, sha1 in zip(cooked_match, raw_match)]
+                        url_sha1s += url_sha1
+                return url_sha1s
+            return []
         except Exception as e:
-            print(f"Error processing layer {layer_no}: {e}")
-            return ""
+            print(f"Error processing page {page_no}: {e}")
+            return []
 
-    match_urls:List[str] = fetch_layer_attachment()
+    match_urls_lists:List[Tuple[str,str]] = fetch_layer_attachment()
     # for url in match_urls:
     #     print("match_urls: " + url)
-    match_urls = [x for x in match_urls if x != ""]
+    url_sha1s = []
+    for lst in match_urls_lists:
+        if lst:
+            url_sha1s += lst
 
-    for sha1_with_ext, url in zip(sha1_codes_with_exts, match_urls):
+    for url, sha1_with_ext in url_sha1s:
         md_content = md_content.replace('upload://' + sha1_with_ext, url)
     # 将修改后的内容写回文件
     with open(path + filename, 'w', encoding='utf-8') as file:
