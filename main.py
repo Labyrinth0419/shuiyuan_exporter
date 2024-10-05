@@ -28,22 +28,12 @@ def raw_post(path:str, topic:str, cookie_string:str)->str:
     filename = topic + ' ' + filename
     with open(path + filename, 'w', encoding='utf-8') as file:
         file.write("")
-    """
-    for page in range(pages):
-        url_raw = Shuiyuan_Raw + topic + "?page=" + str(page + 1)
-        response_raw = make_request(param=ReqParam(url_raw, headers), once=False)
-        content_raw = response_raw.text
-        with open(path + filename, 'a', encoding='utf-8') as file:
-            file.write(content_raw)
-    return filename
-    """
-
     @parallel_topic_in_page(topic=topic, limit=raw_limit)
     def handle_func(page_no: int) -> Tuple[int, str]:
         url_raw = Shuiyuan_Raw + topic + '?page=' + str(page_no)
         response_raw = make_request(param=ReqParam(url_raw, headers), once=False)
         if response_raw.status_code == 200:
-            return page_no, f'post #{page_no}\n' + response_raw.text + "\n\n-----------------------------------\n\n"
+            return page_no, code_block_fix(response_raw.text)
         return page_no, ""
 
     # with concurrent.futures.ThreadPoolExecutor() as executor:

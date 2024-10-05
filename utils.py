@@ -72,42 +72,6 @@ def make_request(param: ReqParam, once=True):
         return req_once()
     return req_multi()
 
-
-def parallel_topic_in_layer(topic:str):
-    def decorator(func:Callable[[int], Any]):
-        def wrapper():
-            nonlocal topic
-            url_json = Shuiyuan_Topic + topic + '.json'  # 从原始json中得到楼数
-            headers = {
-                'User-Agent': UserAgentStr,
-                'Cookie': read_cookie()
-            }
-            req_param = ReqParam(url=url_json, headers=headers)
-            response_json = make_request(req_param, once=True)
-
-            try:
-                data = json.loads(response_json.text)
-                posts_count = data['highest_post_number']
-            except Exception as e:
-                raise Exception(f"获取楼数失败! 原因:{e}")
-            print(f"总楼数 {posts_count}: 正在爬取......")
-            result_futures = []
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                for i in range(1, posts_count + 1):
-                    fu = executor.submit(func, i)
-                    result_futures.append(fu)
-                print("工作已加载完毕")
-            results = []
-            for res in concurrent.futures.as_completed(result_futures):
-                try:
-                    # print(res)
-                    results.append(res.result())
-                except Exception as e:
-                    print(f'Exception: {e}')
-            return results
-        return wrapper
-    return decorator
-
 def parallel_topic_in_page(topic:str, limit: int):
     def decorator(func:Callable[[int], Any]):
         def wrapper():
@@ -144,3 +108,33 @@ def parallel_topic_in_page(topic:str, limit: int):
             return results
         return wrapper
     return decorator
+
+def code_block_fix(content:str)->str:
+    if "#2052" in content:
+        pass
+    fixed_content = ""
+    insert_pos = []
+    code_block_start = 0
+    while True:
+        code_block_start = content.find(code_block_pagination, code_block_start)
+        if code_block_start == -1:
+            break
+        code_block_start += 1
+        code_block_end = content.find(code_block_pagination, code_block_start)
+        layer_pos = content.find(layer_pagination, code_block_start)
+        if layer_pos == -1:
+            break
+        elif code_block_end == -1:
+            insert_pos.append(layer_pos)
+            break
+        elif layer_pos < code_block_end:
+            insert_pos.append(layer_pos)
+            code_block_start = code_block_end
+        elif layer_pos > code_block_end:
+            code_block_start = layer_pos
+    if not insert_pos:
+        return content
+    for i in range(len(insert_pos)):
+        fixed_content += content[:insert_pos[i]] + code_block_pagination + "\n"
+    fixed_content += content[insert_pos[-1]:]
+    return fixed_content
