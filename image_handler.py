@@ -3,8 +3,7 @@ import re
 import os
 
 from constant import UserAgentStr, Shuiyuan_PostByNum, Shuiyuan_Base, Shuiyuan_Topic, Shuiyuan_Topic_Json, json_limit
-from utils import ReqParam, make_request, read_cookie, parallel_topic_in_layer, parallel_topic_in_page
-
+from utils import ReqParam, make_request, read_cookie, parallel_topic_in_page
 
 def download_image(param: ReqParam, output_dir:str, sha1_name:str):
     """
@@ -21,7 +20,6 @@ def download_image(param: ReqParam, output_dir:str, sha1_name:str):
     output_path = os.path.join(output_dir, sha1_name)
     with open(output_path, 'wb') as f:
         f.write(response.content)
-
 
 
 def img_replace(path:str, filename:str, topic:str):
@@ -42,11 +40,7 @@ def img_replace(path:str, filename:str, topic:str):
     @parallel_topic_in_page(topic=topic, limit=json_limit)
     def fetch_image(page_no: int):
         url_json = Shuiyuan_Topic_Json + topic + '.json' + "?page=" + str(page_no)
-        headers = {
-            'User-Agent': UserAgentStr,
-            'Cookie': read_cookie()
-        }
-        req_param = ReqParam(url=url_json, headers=headers)
+        req_param = ReqParam(url=url_json)
         response_json = make_request(req_param, True)
         ret = []
         if response_json.status_code == 200:
@@ -64,7 +58,7 @@ def img_replace(path:str, filename:str, topic:str):
                                 continue
                             url = src if Shuiyuan_Base in src else Shuiyuan_Base[:-1] + src
                             extension = match.group(1)
-                            param = ReqParam(url=url, headers=headers)
+                            param = ReqParam(url=url)
                             download_image(param=param, output_dir=path + 'images', sha1_name=sha1_code + '.' + extension)
                             ret.append(sha1_code + '.' + extension)
         return ret

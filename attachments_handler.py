@@ -21,11 +21,7 @@ def match_replace(path:str, filename:str, topic:str):
     def fetch_attachment(page_no: int) -> List[Tuple[str, str]]:
         try:
             url_json = Shuiyuan_Topic_Json + topic + '.json' + "?page=" + str(page_no)
-            headers = {
-                'User-Agent': UserAgentStr,
-                'Cookie': read_cookie()
-            }
-            param = ReqParam(url=url_json, headers=headers)
+            param = ReqParam(url=url_json)
             response_json = make_request(param, once=False)
             if response_json.status_code == 200:
                 data = json.loads(response_json.text)
@@ -36,7 +32,7 @@ def match_replace(path:str, filename:str, topic:str):
                     cooked_match = re.findall(r'class="attachment" href="([^"]+)"', cooked_content)
                     if cooked_match:
                         url_raw = Shuiyuan_Raw + topic + "/" + str(post['post_number'])
-                        raw_content = make_request(param=ReqParam(url_raw, headers)).text
+                        raw_content = make_request(param=ReqParam(url_raw)).text
                         raw_match = re.findall(r'\[.*?\|attachment\]\(upload://([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\)',
                                                raw_content)
                         raw_match = [t[0] + "." + t[1] for t in raw_match]
