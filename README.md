@@ -30,20 +30,23 @@ $ python main.py
 
 !!!
 
-请输入帖子编号:(退出请输入"???", 多于100楼的帖子请输入"L+帖子编号")
+请输入帖子编号:(退出请输入"???")
 
 75214
 
 文字备份中...
+......
 图片载入中...
+......
 文件替换中...
-编号为 75214 的帖子已备份为本地文件：XXX.md
+.......
+编号为 75214 的帖子已备份为本地文件：XXX.md(对应的图片在image文件夹)
 ```
 
 ### Other Details:
 - we use threadingpool to fetch data concurrently
 - you can use `python main.py --help` to **get more information about optional arguments**(like clean, batch, etc)
-
+- for developer, main.py -s and test.py might be helpful
 
 ### FAQ:
 
@@ -54,5 +57,18 @@ $ python main.py
 - A: F12 in Shuiyuan Forum, find something like `{;}` in `network` tab. Copy the value of `cookie` and paste it to the `cookies.txt` file.
 
 - Q: Why does the script saved a file "SJTU Single Sign On.md"?
-- A: Update your cookie, your cookies are expired.
+- A: Update your cookie, your cookies are expired. You can delete this by `python main.py --clean`
+
+- Q: How fast it is?
+- A: In latest version, to pull a topic with 3800 posts and 100M images cost 10s.
+
+- Q: Will the request be too frequently to be banned?
+- A: It might be. We have tried to reduce the number of requests by paging and caching, but it still has about `post number / 20 + image number` requests due to discourse's limitation. So you have to handle this when you use the script to export a large number of topics.
+
+- Q: Why can't make cookie fetch simpler be given password and jaccount?
+- A: We've considered this. However, the solution usually has to introduce some headless browser like selenium-chrome, which will make the dependencies much bigger
+
+### To Contribute
+Now we are looking forward to support of videos and more optimizations(like rewrite in aiohttp if necessary). If you have some ideas, feel free to change the source code and contact us!
+
 
