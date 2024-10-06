@@ -9,6 +9,7 @@ raw_limit = 100
 json_limit = 20
 layer_pagination = "-------------------------"
 code_block_pagination = "```"
+details_end_pagination = "[/details]"
 
 # bmp，jpg，png，tif，gif，pcx，tga，exif，fpx，svg，psd，cdr，pcd，dxf，ufo，eps，ai，raw，WMF，webp，avif，apng
 image_extensions = {".gif", ".jpg", ".png", ".jpeg", ".webp", ".raw", ".bmp", ".tif", ".tiff", ".avif", ".svg", ".pcd",

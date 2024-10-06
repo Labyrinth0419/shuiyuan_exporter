@@ -136,8 +136,17 @@ def parallel_topic_in_page(topic:str, limit: int):
     return decorator
 
 def code_block_fix(content:str)->str:
-    if "#2052" in content:
-        pass
+    def find_end_pos(content:str, start:int=None, end:int=None)->int:
+        layer_pos = content.find(layer_pagination, start, end)
+        details_pos = content.find(details_end_pagination, start, end)
+        if layer_pos == -1 and details_pos == -1:
+            return -1
+        elif layer_pos == -1:
+            return details_pos
+        elif details_pos == -1:
+            return layer_pos
+        else:
+            return min(layer_pos, details_pos)
     fixed_content = ""
     insert_pos = []
     code_block_start = 0
@@ -147,17 +156,18 @@ def code_block_fix(content:str)->str:
             break
         code_block_start += 1
         code_block_end = content.find(code_block_pagination, code_block_start)
-        layer_pos = content.find(layer_pagination, code_block_start)
-        if layer_pos == -1:
+        #layer_pos = content.find(layer_pagination, code_block_start)
+        end_pos = find_end_pos(content, start=code_block_start)
+        if end_pos == -1:
             break
         elif code_block_end == -1:
-            insert_pos.append(layer_pos)
+            insert_pos.append(end_pos)
             break
-        elif layer_pos < code_block_end:
-            insert_pos.append(layer_pos)
+        elif end_pos < code_block_end:
+            insert_pos.append(end_pos)
             code_block_start = code_block_end
-        elif layer_pos > code_block_end:
-            code_block_start = layer_pos
+        elif end_pos > code_block_end:
+            code_block_start = end_pos
     if not insert_pos:
         return content
     for i in range(len(insert_pos)):
