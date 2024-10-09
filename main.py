@@ -1,3 +1,5 @@
+import platform
+
 from image_handler import *
 from attachments_handler import *
 from constant import *
@@ -143,6 +145,18 @@ def stat(program: str):
     p = pstats.Stats('./stat/run_stats.txt')
     p.strip_dirs().sort_stats(SortKey.TIME).print_stats(10)
 
+
+def detect_os():
+    os_name = platform.system()
+    if os_name == "Windows":
+        return "Windows"
+    elif os_name == "Linux":
+        return "Linux"
+    elif os_name == "Darwin":  # macOS 系统在 platform.system() 中返回 'Darwin'
+        return "macOS"
+    else:
+        raise NotImplementedError(f"Unsupported OS: {os_name}")
+
 def choose_list()->Tuple[str, List]:
     """
     choose a list from quality_list.py in CLI interaction
@@ -154,11 +168,19 @@ def choose_list()->Tuple[str, List]:
         exec(f.read(), None, local_vars)
     lists_only = {k: v for k, v in local_vars.items() if isinstance(v, list)}
     list_names = [k for k in lists_only.keys()]
-    from simple_term_menu import TerminalMenu
-    terminal_menu = TerminalMenu(list_names)
-    menu_entry_index = terminal_menu.show()
+    host_os = detect_os()
+    if host_os in ["Linux", "macOS"]:
+        from simple_term_menu import TerminalMenu
+        terminal_menu = TerminalMenu(list_names)
+        menu_entry_index = terminal_menu.show()
 
-    return list_names[menu_entry_index], lists_only[list_names[menu_entry_index]]
+        return list_names[menu_entry_index], lists_only[list_names[menu_entry_index]]
+    elif host_os in ["Windows"]:
+        import dumb_menu
+        index = dumb_menu.get_menu_choice(list_names)
+        return list_names[index], lists_only[list_names[index]]
+    else:
+        raise NotImplementedError(f"Unsupported OS: {host_os}")
 
 
 if __name__ == "__main__":

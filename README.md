@@ -8,6 +8,7 @@ The reposity is created to export posts on Shuiyuan Forum as markdown documents.
 - BeautifulSoup 4
 - requests
 - simple_term_menu
+- dumb_menu
 
 ### Install dependencies:
 
