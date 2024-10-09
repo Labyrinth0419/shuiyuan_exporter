@@ -100,6 +100,9 @@ def img_replace(path:str, filename:str, topic:str):
 
     def replace(matchs):
         old_link = matchs.group(0)
+        ext_match = re.search(r'\.([a-zA-Z0-9]+)', old_link)
+        if ext_match and ext_match.group(0) not in image_extensions:
+            return old_link
         new_link = old_link.replace('upload://', './images/')
         return new_link
 

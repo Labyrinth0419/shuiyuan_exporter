@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+import quality_list
 from image_handler import *
 from attachments_handler import *
 from constant import *
@@ -9,6 +9,9 @@ import argparse
 import pstats
 from pstats import SortKey
 import cProfile
+from audio_handler import *
+from video_handler import *
+from quality_list import lst
 
 
 def raw_post(path:str, topic:str)->str:
@@ -67,6 +70,12 @@ def export_exec(topic:str):
     last_time = time.time()
     match_replace(path=path, filename=filename, topic=topic)
     print(f"附件爬取耗时: {time.time() - last_time} 秒")
+    last_time = time.time()
+    video_replace(path=path, filename=filename, topic=topic)
+    print(f"视频爬取耗时: {time.time() - last_time} 秒")
+    last_time = time.time()
+    audio_replace(path=path, filename=filename, topic=topic)
+    print(f"音频爬取耗时: {time.time() - last_time} 秒")
     print(f'编号为 #{topic} 的帖子已备份为本地文件：{filename}\n')
     print("Exit.")
 
