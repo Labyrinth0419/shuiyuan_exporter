@@ -71,10 +71,11 @@ $ python main.py
 
 ### To Contribute
 Now we are looking forward to more optimizations on below domains. 
-- [✔] Video and Audio support
+- [x] Video and Audio support
 - [ ] Add more options for users to customize the export
 - [ ] Better Error Handling, especially banned by the server
 - [ ] Better Log system, `-v` and `-VV`
+
 If you have some ideas, feel free to change the source code and contact us!
 
 
