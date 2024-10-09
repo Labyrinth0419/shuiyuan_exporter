@@ -10,9 +10,11 @@ json_limit = 20
 layer_pagination = "-------------------------"
 code_block_pagination = "```"
 details_end_pagination = "[/details]"
+default_save_dir = "./posts"
 
 # bmp，jpg，png，tif，gif，pcx，tga，exif，fpx，svg，psd，cdr，pcd，dxf，ufo，eps，ai，raw，WMF，webp，avif，apng
 image_extensions = {".gif", ".jpg", ".png", ".jpeg", ".webp", ".raw", ".bmp", ".tif", ".tiff", ".avif", ".svg", ".pcd",
                     ".cdr", ".exif", ".fpx", ".WMF", ".apng", ".dxf", ".ufo"}
 
 max_topic_limit = 5E4
+
