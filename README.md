@@ -7,6 +7,7 @@ The reposity is created to export posts on Shuiyuan Forum as markdown documents.
 - Python 3.4+ (Now tested for 3.12 only)
 - BeautifulSoup 4
 - requests
+- simple_term_menu
 
 ### Install dependencies:
 
@@ -45,7 +46,7 @@ $ python main.py
 
 ### Other Details:
 - we use threadingpool to fetch data concurrently
-- you can use `python main.py --help` to **get more information about optional arguments**(like clean, batch, etc)
+- you can use `python main.py --help` to **get more information about optional arguments**(like clean, batch, list etc)
 - for developer, main.py -s and test.py might be helpful
 
 ### FAQ:
@@ -69,6 +70,11 @@ $ python main.py
 - A: We've considered this. However, the solution usually has to introduce some headless browser like selenium-chrome, which will make the dependencies much bigger
 
 ### To Contribute
-Now we are looking forward to support of videos and more optimizations(like rewrite in aiohttp if necessary). If you have some ideas, feel free to change the source code and contact us!
+Now we are looking forward to more optimizations on below domains. 
+- [✔] Video and Audio support
+- [ ] Add more options for users to customize the export
+- [ ] Better Error Handling, especially banned by the server
+- [ ] Better Log system, `-v` and `-VV`
+If you have some ideas, feel free to change the source code and contact us!
 
 
