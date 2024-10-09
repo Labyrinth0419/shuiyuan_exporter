@@ -75,7 +75,8 @@ _init_session, _req_session = False, None
 # thread_local = local()
 _request_posts_cache:Dict[str, Any] = {}
 def make_request(param: ReqParam, once=True):
-    if param.url in _request_posts_cache.keys():
+    cacheable:bool = ".json" in param.url # 目前只有同一个topic下的json是会多次请求的
+    if cacheable and param.url in _request_posts_cache.keys():
         return _request_posts_cache[param.url]
     global _req_session
     if not _init_session:
@@ -84,7 +85,8 @@ def make_request(param: ReqParam, once=True):
         raise NotImplementedError
     def req_once():
         response = _req_session.get(param.url, headers=param.headers)
-        _request_posts_cache[param.url] = response
+        if cacheable:
+            _request_posts_cache[param.url] = response
         return response
 
     @retry(retries=param.retries, delay=param.delay)
