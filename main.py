@@ -1,4 +1,3 @@
-import quality_list
 from image_handler import *
 from attachments_handler import *
 from constant import *
@@ -11,7 +10,6 @@ from pstats import SortKey
 import cProfile
 from audio_handler import *
 from video_handler import *
-from quality_list import lst
 
 
 def raw_post(path:str, topic:str)->str:
@@ -54,12 +52,12 @@ def raw_post(path:str, topic:str)->str:
         file.write(file_text)
     return filename
 
-def export_exec(topic:str):
+def export_exec(topic:str, save_dir:str = default_save_dir):
     topic = str(topic)
     topic = topic[1:] if topic[0] == "L" else topic # 兼容老API的 L123456
     print(f'topic:{topic} 文字备份中...')
 
-    path = f'./posts/{topic}/'
+    path = f'{save_dir}/{topic}/'
     os.makedirs(path, exist_ok=True)
     last_time = time.time()
     filename = raw_post(path=path, topic=topic)
@@ -79,7 +77,7 @@ def export_exec(topic:str):
     print(f'编号为 #{topic} 的帖子已备份为本地文件：{filename}\n')
     print("Exit.")
 
-def export_input():
+def export_input(save_dir:str = default_save_dir):
     topic = input('请输入帖子编号:(退出请输入"???")\n')
     if topic == "???":
         raise Exception("Exit.")
@@ -106,31 +104,36 @@ def cookie_set():
             return True
 
 
-def run(batch_topic:Tuple[str] = None, ask_cookie=True):
+def run(batch_topic:Tuple[str] = None, ask_cookie=True, save_dir:str = default_save_dir):
     if ask_cookie:
         cookie_set()
     if batch_topic and len(batch_topic) != 0:
         for topic in batch_topic:
             try:
-                export_exec(topic=topic)
+                export_exec(topic=topic, save_dir=save_dir)
             except Exception as e:
                 print(e)
         return
     else:
         while True:
             try:
-                export_input()
+                export_input(save_dir=save_dir)
             except Exception as e:
                 print(e)
                 break
-def clean():
-    directory = Path("./posts")
-    for item in directory.iterdir():
+def clean(directory = Path(default_save_dir)):
+    def clean_helper(file):
         if item.is_dir() and re.match(r'\d+', item.name):
             print(f"目录: {item}")
             for file in item.iterdir():
                 if file.name.endswith('Empty.md') or file.name.endswith('Single Sign On.md'):
                     os.remove(file)
+    for item in directory.iterdir():
+        if item.is_dir() and not re.match(r'\d+', item.name):
+            clean(directory=item)
+        elif item.is_dir():
+            clean_helper(item)
+
 
 def stat(program: str):
     stat_dir = Path("./stat")
@@ -140,15 +143,39 @@ def stat(program: str):
     p = pstats.Stats('./stat/run_stats.txt')
     p.strip_dirs().sort_stats(SortKey.TIME).print_stats(10)
 
+def choose_list()->Tuple[str, List]:
+    """
+    choose a list from quality_list.py in CLI interaction
+    :return: list_name, list
+    """
+    local_vars = {}
+
+    with open("quality_list.py", "r") as f:
+        exec(f.read(), None, local_vars)
+    lists_only = {k: v for k, v in local_vars.items() if isinstance(v, list)}
+    list_names = [k for k in lists_only.keys()]
+    from simple_term_menu import TerminalMenu
+    terminal_menu = TerminalMenu(list_names)
+    menu_entry_index = terminal_menu.show()
+
+    return list_names[menu_entry_index], lists_only[list_names[menu_entry_index]]
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="The script is created to export posts on Shuiyuan Forum as markdown documents.")
     parser.add_argument('-b', '--batch', nargs='+',type=str, help='For test and CI: -b 1 2 3 means download the topic 1, 2, 3')
     parser.add_argument('-c', '--clean', action='store_true', help='clean the posts folder for possible meaningless md')
     parser.add_argument('-n','--not_ask_cookie', action='store_true', help='if ask for cookie or use saved cookie directly')
     parser.add_argument('-s', '--stat', action='store_true', help="stat the time consuming analysis and save.")
+    parser.add_argument('-l','--list', action='store_true', help="list the available quality list and pull one in batch mode.)")
     args = parser.parse_args()
     ask = not args.not_ask_cookie if args.not_ask_cookie else True
-
+    if args.list:
+        name, choose_list = choose_list()
+        dir = f"{default_save_dir}/{name}"
+        os.makedirs(dir, exist_ok=True)
+        run(choose_list, ask_cookie=False, save_dir=dir)
+        exit(0)
     if args.batch:
         print(args.batch)
         run(args.batch, ask_cookie=ask)
