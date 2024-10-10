@@ -12,7 +12,7 @@ from pstats import SortKey
 import cProfile
 from audio_handler import *
 from video_handler import *
-
+import sys
 
 def raw_post(path:str, topic:str)->str:
     """
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         dir = f"{default_save_dir}/{name}"
         os.makedirs(dir, exist_ok=True)
         run(choose_list, ask_cookie=False, save_dir=dir)
-        exit(0)
+        sys.exit(0)
     if args.batch:
         print(args.batch)
         run(args.batch, ask_cookie=ask)
