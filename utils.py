@@ -9,8 +9,8 @@ from typing import Dict, List, Callable,Any
 from constant import *
 from threading import Thread, local
 import requests
-
-
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 _cookie_default_path = "./cookies.txt"
 @cache
 def read_cookie(path:str = _cookie_default_path):
@@ -47,21 +47,25 @@ class ReqParam:
         }
 
 
-def retry(retries:int, delay:int):
-    def decorator(func):
-        def wrapper(*arg, **kwargs):
-            for i in range(retries):
-                try:
-                    response = func(*arg, **kwargs)
-                    return response
-                except Exception as e:
-                    nonlocal delay
-                    print(f'Exception: {e}, Retry: {i}')
-                    if i < retries - 1:
-                        time.sleep(delay)
-                        delay *= 2
-        return wrapper
-    return decorator
+# def retry(retries:int, delay:int):
+#     def decorator(func):
+#         def wrapper(*arg, **kwargs):
+#             for i in range(retries):
+#                 try:
+#                     response = func(*arg, **kwargs)
+#                     return response
+#                 except Exception as e:
+#                     nonlocal delay
+#                     print(f'Exception: {e}, Retry: {i}')
+#                     if i < retries - 1:
+#                         time.sleep(delay)
+#                         delay *= 2
+#         return wrapper
+#     return decorator
+
+_url_retry = Retry(connect=3, backoff_factor=0.5)
+adapter = HTTPAdapter(max_retries=_url_retry)
+
 
 def init_session():
     Shuiyuan_Session = requests.Session()
@@ -69,6 +73,8 @@ def init_session():
             'User-Agent': UserAgentStr,
             'Cookie': read_cookie()
     })
+    Shuiyuan_Session.mount('http://', adapter)
+    Shuiyuan_Session.mount('https://', adapter)
     return Shuiyuan_Session
 _init_session, _req_session = False, None
 
@@ -89,7 +95,7 @@ def make_request(param: ReqParam, once=True):
             _request_posts_cache[param.url] = response
         return response
 
-    @retry(retries=param.retries, delay=param.delay)
+    # @retry(retries=param.retries, delay=param.delay)
     def req_multi():
         return req_once()
 
