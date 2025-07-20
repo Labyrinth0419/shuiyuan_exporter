@@ -34,7 +34,7 @@ def raw_post(path:str, topic:str)->str:
         url_raw = Shuiyuan_Raw + topic + '?page=' + str(page_no)
         response_raw = make_request(param=ReqParam(url_raw), once=False)
         if response_raw.status_code == 200:
-            return page_no, code_block_fix(response_raw.text)
+            return page_no, quote_in_shuiyuan(code_block_fix(response_raw.text))
         return page_no, ""
 
     # with concurrent.futures.ThreadPoolExecutor() as executor:

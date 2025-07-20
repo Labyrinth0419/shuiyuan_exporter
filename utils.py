@@ -182,3 +182,73 @@ def code_block_fix(content:str)->str:
         fixed_content += content[:insert_pos[i]] + code_block_pagination + "\n"
     fixed_content += content[insert_pos[-1]:]
     return fixed_content
+
+def get_main_raw_post(topic:str, post:str)->str:
+    if not topic:
+        return ""
+    if post:
+        url_raw = Shuiyuan_Raw + topic + "/" + post
+    else:
+        url_raw = Shuiyuan_Raw + topic + "/1"
+    response = make_request(ReqParam(url=url_raw), once=False)
+    if response.status_code == 200:
+        data = response.text
+        return data
+    return ""
+
+
+def add_md_quote(md_text: str) -> str:
+    """
+    Adds Markdown quote formatting to the given text.
+
+    :param md_text: The Markdown text to be converted to a quote.
+    :return: The quoted Markdown text.
+    """
+    # Split the text into lines
+    lines = md_text.splitlines()
+
+    # Add the quote symbol '>' to each line
+    quoted_lines = [f"> {line}" for line in lines]
+
+    # Join the lines back into a single string with newlines
+    quoted_text = "\n".join(quoted_lines)
+
+    return quoted_text
+
+def quote_in_shuiyuan(md_text:str)->str:
+    """
+    parse links like https://shuiyuan.sjtu.edu.cn/t/topic/XXXXX(/XXXX) to quote
+    """
+    # 定义正则表达式匹配代码块（包括行内代码和块级代码）
+    code_block_pattern = r"(?P<code_block>```[\s\S]*?```|`[^`]*`)"
+
+    # 定义正则表达式匹配Markdown格式的链接（[链接文本](链接地址)）
+    markdown_link_pattern = r"\[.*?\]\(https?://[^\)]+\)"
+
+    # 定义正则表达式匹配裸链接（http:// 或 https:// 开头的链接）
+    bare_link_pattern = r"https://shuiyuan\.sjtu\.edu\.cn/t/topic/(\d+)(/(\d+))?"
+
+    # 保存代码块和Markdown格式链接的原始内容
+    code_blocks = re.findall(code_block_pattern, md_text)
+    markdown_links = re.findall(markdown_link_pattern, md_text)
+
+    # 替换代码块和Markdown格式链接为占位符
+    temp_text = re.sub(code_block_pattern, "%%CODE_BLOCK%%", md_text)
+    temp_text = re.sub(markdown_link_pattern, "%%MARKDOWN_LINK%%", temp_text)
+
+    def replace(m:re.Match)->str:
+        topic = m[1]
+        post = m[3]
+        quote_text = get_main_raw_post(topic, post)
+        return add_md_quote(quote_text)
+
+
+    replaced_text = re.sub(bare_link_pattern, replace, temp_text)
+
+    # 还原代码块和Markdown格式链接
+    for block in code_blocks:
+        replaced_text = replaced_text.replace("%%CODE_BLOCK%%", block, 1)
+    for link in markdown_links:
+        replaced_text = replaced_text.replace("%%MARKDOWN_LINK%%", link, 1)
+
+    return replaced_text
